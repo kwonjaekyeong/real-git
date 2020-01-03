@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
+from base64 import b64encode
+# byte 배열을 base64로 변경함.
 
 cursor = connection.cursor() #sql문 수행위한 cursor객체
 
@@ -25,26 +27,50 @@ def content(request):
             cursor.execute(sql, [no])
             request.session['hit'] = 0
 
+        # 이전글 번호 가져오기
+        sql="""
+            SELECT NVL(MAX(NO), 0)   
+            FROM BOARD_TABLE1
+            WHERE NO  < %s 
+        """
+        cursor.execute(sql, [no])
+        prev = cursor.fetchone()
 
+        # 다음글 번호 가져오기
+        sql="""
+            SELECT NVL(MIN(NO), 0)   
+            FROM BOARD_TABLE1
+            WHERE NO  > %s 
+        """
+        cursor.execute(sql, [no])
+        next = cursor.fetchone()
 
         # 가져오기
         sql = """
             SELECT 
                 NO, TITLE, CONTENT,
                 WRITER, HIT,
-                TO_CHAR(REGDATE, 'YYYY-MM-DD HH:MI:SS') 
+                TO_CHAR(REGDATE, 'YYYY-MM-DD HH:MI:SS'),
+                IMG
             FROM 
                 BOARD_TABLE1
             WHERE
                 NO = %s
         """
         cursor.execute(sql, [no])
-        data = cursor.fetchone()
-        
-        print(no)
-        return render(request, 'board/content.html',
-            {"one":data})
+        data = cursor.fetchone() # (1,2,3,4,5,6)
 
+        if data[6] : #DB에 BLOB로 있는 경우
+            img = data[6].read() #바이트배열을 img에 넣음
+            img64 = b64encode(img).decode("utf-8")
+        else : #없는 경우
+            file = open('./static/img/no image.jpg', 'rb')
+            img = file.read()
+            img64 = b64encode(img).decode("utf-8")
+
+        #print(no)
+        return render(request, 'board/content.html',
+            {"one":data, "image":img64, "prev":prev[0], "next":next[0]}) 
 
 
 @csrf_exempt
@@ -71,12 +97,16 @@ def write(request):
     if request.method == "GET": 
         return render(request, 'board/write.html')
     elif request.method =='POST':
-        img = request.FILES['img'] #name 값 img
+        tmp = None
+        if 'img' in request.FILES:
+            img = request.FILES['img'] #name 값 img
+            tmp = img.read()
+        
         arr = [
             request.POST['title'],
             request.POST['content'],
             request.POST['writer'],
-            img.read()  #이미지를 byte[]로 변경
+            tmp  #이미지를 byte[]로 변경
         ]
         try : 
             #print(arr)
