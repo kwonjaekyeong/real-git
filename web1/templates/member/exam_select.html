@@ -4,34 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>list</title>
+    <title>Document</title>
 </head>
 <body>
-    <form action="/member/exam_update" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="menu" value="1"/>
-        <table border="1">
-        {% for one in list %}
+    <form action ="/member/exam_select" method='GET'>
+    <input type = "text" name="txt">
+    <input type = "submit" name="검색">
+    </form>
+    <table border="1">
         <tr>
+            <th>이름</th>
+            <th>국어</th>
+            <th>영어</th>
+            <th>수학</th>
+            <th>강의실</th>
+            <th></th>
+        </tr>
+        {% for row in list %}
+        <tr>
+            <td>{{row.name}}</td>
+            <td>{{row.kor}}</td>
+            <td>{{row.eng}}</td>
+            <td>{{row.math}}</td>
+            <td>{{row.classroom}}</td>
+            <td>{{row.regdate}}</td>
             <td>
-                <input type ="checkbox" value="{{one.no}}" name="chk[]"/></td>
-            <td>{{one.no}}</td>   
-            <td>{{one.name}}</td>
-            <td>{{one.kor}}</td>
-            <td>{{one.eng}}</td>
-            <td>{{one.math}}</td>
-            <td>{{one.regdate}}</td>
-            <td>
-                <a href="/member/exam_delete?no={{ one.no }}">삭제</a>
-                <a href="/member/exam_update?no={{ one.no }}">수정</a>
+                <a href="/member/exam_update?no={{row.no}}">수정</a>
+                <a href="/member/exam_delete?no={{row.no}}">삭제</a>
             </td>
         </tr>
-        {% endfor 1%}
-
-        </table>
-        <input type = "submit" value ="일괄수정"/>
-        <a href="/member/exam_insert_all">추가</a>
-        <a href="/board/exam_insert_all">일괄추가</a>
-    </form>
+        {% endfor %}
+    </table>
+    {% for i in pages %}
+    <a href="/member/exam_select?page={{i}}&txt={{request.GET.txt}}">{{i}}</a>
+    {% endfor %}
 </body>
-</html>
+</html>        
+        

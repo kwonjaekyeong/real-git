@@ -10,6 +10,7 @@ cursor = connection.cursor() #sql문 수행위한 cursor객체
 
 
 ##############################
+from.models import Table1
 from.models import Table3
 
 @csrf_exempt
@@ -289,21 +290,41 @@ def content(request):
 def list(request):
     if request.method == "GET": 
         request.session['hit']=1  #세션에 hit=1
+        txt = request.GET.get("txt", "")
+        page = int(request.GET.get("page", 1))
+        arr = [  page*10-10+1, page*10 ]
         sql = """
-            SELECT 
+            SELECT * FROM (
+                SELECT 
+
+                
                 NO, TITLE,
                 WRITER, HIT,
-                TO_CHAR(REGDATE, 'YYYY-MM-DD HH:MI:SS') 
+                TO_CHAR(REGDATE, 'YYYY-MM-DD HH:MI:SS') ,
+                ROW_NUMBER() OVER (ORDER BY NO DESC) ROWN
             FROM 
-                BOARD_TABLE1
-            ORDER BY NO DESC
+                BOARD_TABLE1)
+            WHERE ROWN BETWEEN %s AND %s
         """
-        cursor.execute(sql)
+        cursor.execute(sql, arr)
         data = cursor.fetchall()
         print(type(data)) 
         print(data)       # [(), ()]
-        return render(request, 'board/list.html', {"abc":data})
-  
+        
+        #cnt = Table1.objects.all().count()  #sql문과 이것 중에 하나 사용하기!
+        #tot = (cnt-1)//10+1
+
+        sql = "SELECT COUNT(*) FROM BOARD_TABLE1"
+        cursor.execute(sql)
+        # cnt = cursor.fetchone()[0]
+        cnt = int(cursor.fetchone()[0])
+        tot = (cnt-1)//10+1
+
+        return render(request, 'board/list.html', {"abc":data, "pages": range(1, (tot+1), 1)})
+
+
+
+
 @csrf_exempt
 def write(request):
     if request.method == "GET": 

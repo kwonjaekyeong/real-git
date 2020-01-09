@@ -15,6 +15,104 @@ from django.contrib.auth import authenticate as auth1
 from.models import Table2
 from django.db.models import Sum, Max, Min, Count, Avg
 
+import pandas as pd
+
+import matplotlib.pyplot as plt
+import io # byte로 변환
+import base64 # byte를 base64로 변경
+from matplotlib import font_manager, rc # 한글 폰트 적용
+
+def graph(request):
+
+    # SELECT SUM("kor") FROM MEMBER_TABLE2   
+    sum_kor = Table2.objects.aggregate(Sum("kor"))
+    print(sum_kor) #"kor__sum1"
+
+    # SELECT SUM("kor") AS sum1 FROM MEMBER_TABLE2
+    sum_kor = Table2.objects.aggregate(sum1=Sum("kor"))
+    print(sum_kor) #"sum1"
+    
+    # SELECT SUM("kor") FROM MEMBER_TABLE2
+    # WHERE CLASSROOM=102
+    sum_kor = Table2.objects.filter(classroom='102').aggregate(sum1=Sum("kor"))
+    print(sum_kor)
+
+    # SELECT SUM("kor") FROM MEMBER_TABLE2
+    # WHERE KOR > 100
+    # > gt, >= gte, < lt, =< lte
+    sum_kor = Table2.objects.filter(kor__gt=10).aggregate(sum1=Sum("kor"))
+    print(sum_kor)
+
+    # 반별합계
+    # SELECT SUM("kor") sum1, SUM("eng") sum2, SUM("math") sum3
+    # FROM MEMBER TABLE2
+    # GROUP BY CLASSROOM
+    sum_kor = Table2.objects.values("classroom").annotate(sum1=Sum("kor"), sum2=Sum("eng"), sum3=Sum("math"))
+    print(sum_kor)
+    print(sum_kor.query) #SQL문으로 확인
+
+
+    df =  pd.DataFrame(sum_kor)
+    print(df)
+    df.plot(kind="bar")
+    x = ['kor', 'eng', 'math']
+    y = [ 45, 3, 4]
+    
+    # 폰트읽기
+    font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/malgun.ttf").get_name()
+
+    
+    # 폰트 적용
+    rc('font', family=font_name)
+
+
+    plt.bar(x,y)
+    plt.title("AGES & PERSON")
+    plt.xlabel("나이")
+    plt.ylabel("숫자")
+
+    #plt.show() # 표시
+    plt.draw() # 안보이게 그림을 캡쳐
+    img =  io.BytesIO() # img에 byte배열로 보관
+    plt.savefig(img, format = "png") # png파일 포맷으로 저장
+    img_url = base64.b64encode(img.getvalue()).decode()
+    
+    plt.close() # 그래프 종료
+
+    return render(request, 'member/graph.html', {"graph1":'data:;base64,{}'.format(img_url)})
+    # <img src="{{graph1}}"/>  <= graph.html에서 
+
+ 
+
+
+
+def dataframe(request):
+    # SELECT * FROM MEMBER_TABLE2
+    # rows = Table2.objects.all()
+
+    # 1. QuerySet -> list로 변경
+    # SELECT NO, NAME, KOR FROM MEMBER_TABLE2
+    rows = list(Table2.objects.all().values("no", "name", "kor"))[0:10]
+    print(rows)
+
+    
+    # 2. list -> dataframe 으로 변경
+    df =  pd.DataFrame(rows)
+    print(df)
+    return render(request, "member/dataframe.html", {"df_table": df.to_html(), "list":rows})
+
+    # 3. dataframe -> list
+    rows1 = df.values.tolist()
+
+
+def js_chart(request):
+    if request.method == "GET": 
+        return render(request, 'member/js_chart.html') 
+
+def js_index(request):
+    str = "100, 200, 300, 400, 200, 100"
+    return render(request, 'member/js_index.html', {"str":str}) 
+
 def exam_list(request):
     if request.method == "GET": 
         rows =  Table2.objects.all()  
@@ -25,26 +123,28 @@ def exam_list(request):
 
 @csrf_exempt
 def exam_select(request):
-    no = request.GET.get('no',0)
-    # SELECT SUM(math) FROM MEMBER_TABLE2 
-    # WHERE CLASS_ROOM=101
-    list = Table2.objects.aggregate(Sum('math'))
+    txt = request.GET.get("txt", "")
+    page = int(request.GET.get("page", 1))
 
-    # SELECT NO, NAME FROM MEMBER_TABLE2
-    list = Table2.objects.all().values(['no','name'])
-
-    # SELECT * FROM MEMBER_TABLE2 ORDER BY name ASC
-    list = Table2.objects.all().order_by('name')
-    #list = Table2.objects.raw("SELECT * FROM MEMBER_TABLE2 ORDER BY name ASC")
-
-    # 반별 국어, 영어, 수학 합계
-    # SELECT SUM(kor), SUM(eng), SUM(math)
-    # FROM MEMBER_TABLE2
-    # GROUP BY CLASSROOM
-    if no == '1':
-        list = Table2.objects.values('classroom').annotate(kor=Sum('kor'),eng=Sum('eng'),math=Sum('math'))    
-    return render(request, 'member/exam_select.html',{"list":list})
+    if txt == "" : # 검색어가 없는 경우 전체 출력
+        # SELECT * FROM MEMBER_TABLE2 
+        list = Table2.objects.all()[page*10-10:page*10]
     
+        # SELECT COUNT (*) FROM MEMBER_TABLE2
+        cnt  = Table2.objects.all().count()
+        tot  = (cnt-1)//10+1
+
+    else: # 검색어가 있는 경우
+        # SELECT * FROM MTEWHERE name LIKE '%가%'
+        list = Table2.objects.filter(name__contains=txt)[page*10-10:page*10]
+
+        # SELECT COUNT(*) FROM MTE WHERE name LIKE '%가%'
+        cnt  = Table2.objects.filter(name__contains=txt).count() 
+        tot  = (cnt-1)//10+1
+
+    return render(request, 'member/exam_select.html', {"list":list, "pages":range(1,tot+1,1)})
+        
+
 
 @csrf_exempt
 def exam_insert(request):
@@ -123,6 +223,7 @@ def exam_update_all(request):
 
 
 ###########################################################
+"""
 @csrf_exempt
 def exam_select(request):
     if request.method == "GET":
@@ -138,6 +239,7 @@ def exam_select(request):
   
 
         return redirect("/member/exam_select")
+"""        
 #################################################################
 
 
@@ -273,7 +375,7 @@ def join1(request):
     if request.method == "GET":    
         return render(request, 'member/join1.html')
 
-def list(request):
+def list1(request):
     # ID 기준으로 오름차순
     sql = "SELECT * FROM MEMBER ORDER BY ID ASC"
     cursor.execute(sql) #sql문 실행
@@ -283,7 +385,7 @@ def list(request):
 
     # list.html 을 표시하기 전에
     # list 변수에 data값을, title 변수에 "회원목록"  문자를
-    return render(request, 'member/list.html', 
+    return render(request, 'member/list1.html', 
         {"list":data, "title": "회원목록"}) 
 
 
@@ -341,7 +443,7 @@ def join(request):
             INSERT INTO MEMBER(ID, NAME, AGE, PW, JOINDATE)
             VALUES (%s, %s, %s, %s, SYSDATE)
             """
-        cursor.execute(sql, ar) 
+        cursor.execute(sql, ar)
 
         # 크롬에서 127.0.0.1:8000/member/index 엔터키를 자동화
         return redirect('/member/index') # /중요하다!!

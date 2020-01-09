@@ -37,13 +37,23 @@
             {% for one in abc %} 
             <tr>
                 <td>{{one.0}}</td>
-                <td><a href="/board/content?no={{one.0}}">{{one.1}}</a></td>
-                <td>{{one.2}}</td>
+                <td>{{one.1}}</td>
                 <td>{{one.3}}</td>
                 <td>{{one.4}}</td>
+                <td>{{one.5}}</td>
             </tr>
             {% endfor %}
         </table>
+    
+    <nav aria-label="Page navigation example">
+    <ul class="pagination">
+    {% for i in pages %}
+    <li class="page-item">
+    <a class="page-link" href="/board/list?page={{i}}">{{i}}</a>
+    </li>
+    {% endfor %}
+    </ul>
+    </nav>
     </div>
 </body>
 </html>

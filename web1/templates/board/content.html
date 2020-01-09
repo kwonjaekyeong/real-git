@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/bootstrap.css"/>
 </head>
 <body>
+    {% autoescape off %}
     <div class="container">
         <div style="margin-top:5px; margin-bottom: 5px;">
             <h3>글내용</h3>
@@ -57,5 +58,6 @@
         <a href="/board/edit?no={{one.0}}" class="btn btn-secondary">글수정</a>
         <a href="/board/delete?no={{one.0}}" class="btn btn-danger">글삭제</a>
     </div>
+    {% endautoescape %}
 </body>
 </html>
