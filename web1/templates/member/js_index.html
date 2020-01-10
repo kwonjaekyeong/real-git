@@ -19,7 +19,8 @@
         crossorigin="anonymous"></script>
     <script>
         $(function(){
-            $('#name').val('jquery insert')
+            $.get('http://127.0.0.1:8000/api/select1?key=abc', function(data){console.log(data)}, ''json')
+            ('#name').val('jquery insert')
 
             $('#btn_delete').click(function(){
                 $('#form').attr('action', '/member/delete')
