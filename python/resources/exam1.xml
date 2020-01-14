@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<data>
+    <student>
+        <name>a</name>
+        <age>11</age>
+        <addr id="a">addr1</addr>
+    </student>
+    <student>
+        <name>b</name>
+        <age>22</age>
+        <addr id="b">addr2</addr>
+    </student>
+</data>
+    
